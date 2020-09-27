@@ -1,25 +1,211 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
+output:
   html_document:
     keep_md: true
 ---
+**This document contains the completed Reproducible Research Course Project1 for peer assessment.**
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Course Project Description
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+### Commit containing full submission
+
+1. Code for reading in the dataset and/or processing the data
+2. Histogram of the total number of steps taken each day
+3. Mean and median number of steps taken each day
+4. Time series plot of the average number of steps taken
+5. The 5-minute interval that, on average, contains the maximum number of steps
+6. Code to describe and show a strategy for imputing missing data
+7. Histogram of the total number of steps taken each day after missing values are imputed
+8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+9. All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
 
 ## Loading and preprocessing the data
+=====================================
 
+### 1. Load the data
+```{r, echo=TRUE}
 
+unzip(zipfile="activity.zip") 
+
+activity <- read.csv("activity.csv") ## Load the data
+
+library(ggplot2)
+library(dplyr)
+
+```
+
+### Basic structure of activity data
+```{r, echo=TRUE}
+
+dim(activity)
+
+names(activity)
+
+head(activity)
+
+str(activity)
+
+```
 
 ## What is mean total number of steps taken per day?
+====================================================
 
+### 1. Calculate the total number of steps taken per day
 
+```{r, echo=TRUE}
+
+TotalStepsPerDay <- aggregate(activity$steps, list(activity$date), FUN=sum) ## Calculate the total number of steps per day
+
+names(TotalStepsPerDay) <- c("Date", "Steps")  ## Assign the header name
+
+head(TotalStepsPerDay)
+
+```
+
+### 2. If you do not understand the difference between a histogram and a barplot, research the difference between them.  Make a histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+
+ggplot(TotalStepsPerDay, aes(Steps)) + geom_histogram(boundary=0, binwidth=2500, col="darkgreen", fill="lightgreen")+ggtitle("Histogram of steps per day")+xlab("Steps Per Day")+ylab("Frequency") + scale_x_continuous (breaks=seq(0,25000,2500)) + scale_y_continuous (breaks=seq(0,18,2))
+
+```
+
+### 3. Calculate and report the mean and median of the total number of steps taken per day
+
+```{r mean, echo=TRUE}
+
+mean(TotalStepsPerDay$Steps, na.rm = TRUE)  ## Mean of total number of steps taken per day
+
+```
+**The mean of total number of steps taken per day is 10766.19**
+
+```{r median, echo=TRUE}
+
+median(TotalStepsPerDay$Steps, na.rm = TRUE)  ## Median of total number of steps taken per day
+
+```
+**The median of total number of steps taken per day is 10765**
 
 ## What is the average daily activity pattern?
+==============================================
 
+#### 1. Time series plot of the 5 minute interval (x) and averaged number of steps taken averaged across all days (y)
 
+```{r echo=TRUE}
+
+AverageStepsPerTime <- aggregate (steps~interval, data=activity, FUN=mean, na.action=na.omit) ## create table with average steps per time
+
+ggplot(AverageStepsPerTime, aes(interval, steps)) + geom_line(col="brown") + ggtitle ("Average steps per time interval") + xlab ("Time Interval") + ylab ("Average steps")  ## draw the line plot
+
+```
+
+#### 2. 5-minute interval (on average across all the days) with the maximum number of steps
+
+```{r echo=TRUE}
+
+AverageStepsPerTime[which.max(AverageStepsPerTime$steps), ]  ## Find the interval column with maximum value
+
+```
+
+**The interval with maximum average number of steps is 835**
 
 ## Imputing missing values
+==========================
 
+#### 1. Total number of missing values in the dataset
+
+```{r echo=TRUE}
+
+sum(is.na(activity))  ## count the number of missing values in the dataset
+
+```
+
+**The total number of missing values in the dataset is 2304**
+
+#### 2. Replace missing values
+
+CompleteSteps is the new column without missing values.
+
+``` {r echo = TRUE}
+
+activity$CompleteSteps <- ifelse(is.na(activity$steps), (AverageStepsPerTime$steps [match(activity$interval, AverageStepsPerTime$interval)]), activity$steps)  ## values without NA are imputed in a new column
+
+```
+
+#### 3. New dataset that is equal to the original dataset but with the missing data filled in
+
+```{r echo=TRUE}
+
+activityFull <- data.frame(steps=activity$CompleteSteps, interval=activity$interval, date=activity$date) ## A new activity dataset with filled missing values
+
+head(activityFull)
+
+```
+
+#### 4a. Histogram of the total number of steps taken each day with missing data filled in
+
+```{r echo=TRUE}
+
+TotalStepsPerDayFull <- aggregate(activityFull$steps, list(activityFull$date), FUN=sum) # data for histogram plot
+
+colnames(TotalStepsPerDayFull) <- c("Date", "Steps") # data for histogram plot
+
+ggplot(TotalStepsPerDayFull, aes(Steps)) + geom_histogram (boundary=0, binwidth=2500, col="darkblue", fill="lightblue") + ggtitle("Histogram of steps per day") + xlab("Steps per day") + ylab ("Frequency") + scale_x_continuous (breaks=seq(0,25000,2500)) + scale_y_continuous(breaks=seq(0,26,2))
+
+```
+
+#### 4b. Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r echo=TRUE}
+
+mean(TotalStepsPerDayFull$Steps)  ## Mean of total number of steps taken per day from new database with filled missing value
+
+```
+
+**The mean of total number of steps taken per day from the new database with filled missing values is 10766.19**
+
+```{r echo=TRUE}
+
+median(TotalStepsPerDayFull$Steps)  ## Median of total number of steps taken per day from new database with filled missing value
+
+```
+
+**The median of total number of steps taken per day from the new database with filled missing values is 10766.19**
+
+Imputing missing values have no impact on the mean but there is a slight change in the median of the total daily number of steps. Watching the histogram we can note than the only bin that is changed is the interval between 10000 and 12500 steps, grown from a frequency of 18 to a frequency of 26.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+============================================================================
+
+#### 1. Create a new factor variable in the dataset with two levels - “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+DayType is the new column indicating if the day is a weekday day or a weekend day
+
+```{r echo=TRUE}
+
+activityFull$RealDate <- as.Date(activityFull$date, format = "%Y-%m-%d") ## Create a new variable with date in correct format
+
+activityFull$weekday <- weekdays(activityFull$RealDate) ## Create a new variable "weekday" with weekday's name
+
+activityFull$DayType <- ifelse(activityFull$weekday=='Saturday' | activityFull$weekday=='Sunday', 'weekend','weekday') ## create a new variable "DataType" indicating weekday or weekend
+
+head(activityFull, n=10)
+
+```
+
+#### 2. Two time series plot of the 5-minute interval (x) and the average number of steps taken averaged across weekday days or weekend days (y).
+
+```{r echo=TRUE}
+AverageStepsPerTimeDT <- aggregate(steps ~ interval + DayType, data=activityFull, FUN=mean, na.action=na.omit)  ## create table with steps per time across weekday days or weekend days
+
+ggplot(AverageStepsPerTimeDT, aes(interval, steps)) + geom_line(col="darkred") + ggtitle ("Average steps per time interval: weekdays vs. weekends") + xlab("Time Interval") + ylab("Average steps") + facet_grid(DayType ~ .)
+
+```
+
